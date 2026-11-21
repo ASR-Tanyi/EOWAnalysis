@@ -2,7 +2,7 @@
 """Compile C for AArch64 and compare one bounded function with the uploaded NSO."""
 
 import argparse
-from contextlib import closing
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 import difflib
 from functools import cache
@@ -46,8 +46,9 @@ class Reloc:
     addend: int | None
 
 
-def object_function(path, name, linked_at=None):
-    """Slice a relocatable symbol or read the final bytes of a statically linked ELF."""
+@contextmanager
+def object_functions(path, linked_at=None):
+    """Read any number of bounded symbols while parsing the ELF section index once."""
     expected_type = "ET_REL" if linked_at is None else "ET_EXEC"
     expected = f"Expected a 64-bit little-endian AArch64 {expected_type} ELF"
     with path.open("rb") as stream:
@@ -58,45 +59,57 @@ def object_function(path, name, linked_at=None):
         if (elf.elfclass, elf.little_endian, elf["e_machine"], elf["e_type"]) != (64, True, "EM_AARCH64", expected_type):
             raise ValueError(expected)
         symbols = elf.get_section_by_name(".symtab")
-        matches = symbols.get_symbol_by_name(name) if symbols is not None else []
-        matches = [s for s in matches or [] if s["st_info"]["type"] == "STT_FUNC" and isinstance(s["st_shndx"], int)]
-        if len(matches) != 1:
-            raise ValueError(f"Expected one defined function named {name!r}, found {len(matches)}. Check --symbol")
-        sym = matches[0]
-        section = elf.get_section(sym["st_shndx"])
-        start, size = sym["st_value"], sym["st_size"]
-        if linked_at is not None:
-            if any(seg["p_type"] in ("PT_DYNAMIC", "PT_INTERP") for seg in elf.iter_segments()):
-                raise ValueError("--linked requires a statically linked executable")
-            if start != linked_at:
-                raise ValueError(f"Linked symbol is at {start:#x}, expected {linked_at:#x}")
-            start -= section["sh_addr"]
-        if (not section["sh_flags"] & 4 or section["sh_type"] != "SHT_PROGBITS" or not size or start < 0 or
-                start % 4 or size % 4 or start + size > section.data_size):
-            raise ValueError(f"Invalid AArch64 function extent for {name!r}")
-        body = section.data()[start:start + size]
-        if linked_at is not None:
-            return body, []
-        relocs = []
-        for rs in elf.iter_sections():
-            if not isinstance(rs, RelocationSection) or rs["sh_info"] != sym["st_shndx"]:
-                continue
-            table = elf.get_section(rs["sh_link"])
-            for r in rs.iter_relocations():
-                offset, kind = r["r_offset"] - start, r["r_info_type"]
-                width = 8 if kind in (257, 260) else 2 if kind in (259, 262) else 4
-                if kind == 0 or offset + width <= 0 or offset >= size:
-                    continue
-                target = table.get_symbol(r["r_info_sym"])
-                label = target.name
-                if not label and target["st_info"]["type"] == "STT_SECTION":
-                    label = elf.get_section(target["st_shndx"]).name
-                kind_name = describe_reloc_type(kind, elf)
-                if kind_name == "<unknown>":
-                    kind_name = {299: "R_AARCH64_LDST128_ABS_LO12_NC"}.get(kind, f"R_AARCH64_{kind}")
-                relocs.append(Reloc(offset, kind, kind_name, label, target["st_shndx"] == "SHN_UNDEF",
-                                    r["r_addend"] if rs.is_RELA() else None))
-        return body, relocs
+        symbol_index = elf.get_section_index(".symtab")
+        relocations = {}
+        for section in elf.iter_sections():
+            if isinstance(section, RelocationSection):
+                relocations.setdefault(section["sh_info"], []).append(section)
+
+        def read(name):
+            matches = symbols.get_symbol_by_name(name) if symbols is not None else []
+            matches = [s for s in matches or [] if s["st_info"]["type"] == "STT_FUNC" and isinstance(s["st_shndx"], int)]
+            if len(matches) != 1:
+                raise ValueError(f"Expected one defined function named {name!r}, found {len(matches)}. Check --symbol")
+            sym = matches[0]
+            section = elf.get_section(sym["st_shndx"])
+            start, size = sym["st_value"], sym["st_size"]
+            if linked_at is not None:
+                if any(seg["p_type"] in ("PT_DYNAMIC", "PT_INTERP") for seg in elf.iter_segments()):
+                    raise ValueError("--linked requires a statically linked executable")
+                if start != linked_at:
+                    raise ValueError(f"Linked symbol is at {start:#x}, expected {linked_at:#x}")
+                start -= section["sh_addr"]
+            if (not section["sh_flags"] & 4 or section["sh_type"] != "SHT_PROGBITS" or not size or start < 0 or
+                    start % 4 or size % 4 or start + size > section.data_size):
+                raise ValueError(f"Invalid AArch64 function extent for {name!r}")
+            body = section.data()[start:start + size]
+            if linked_at is not None:
+                return body, []
+            relocs = []
+            for rs in relocations.get(sym["st_shndx"], ()):
+                table = symbols if rs["sh_link"] == symbol_index else elf.get_section(rs["sh_link"])
+                for r in rs.iter_relocations():
+                    offset, kind = r["r_offset"] - start, r["r_info_type"]
+                    width = 8 if kind in (257, 260) else 2 if kind in (259, 262) else 4
+                    if kind == 0 or offset + width <= 0 or offset >= size:
+                        continue
+                    target = table.get_symbol(r["r_info_sym"])
+                    label = target.name
+                    if not label and target["st_info"]["type"] == "STT_SECTION":
+                        label = elf.get_section(target["st_shndx"]).name
+                    kind_name = describe_reloc_type(kind, elf)
+                    if kind_name == "<unknown>":
+                        kind_name = {299: "R_AARCH64_LDST128_ABS_LO12_NC"}.get(kind, f"R_AARCH64_{kind}")
+                    relocs.append(Reloc(offset, kind, kind_name, label, target["st_shndx"] == "SHN_UNDEF",
+                                        r["r_addend"] if rs.is_RELA() else None))
+            return body, relocs
+
+        yield read
+
+
+def object_function(path, name, linked_at=None):
+    with object_functions(path, linked_at) as read:
+        return read(name)
 
 
 def target_lookup(db, module, entry, entry_name):
@@ -196,11 +209,12 @@ def write_disassembly(folder, original, placed, relocs, entry):
         out.write(f"Pending relocations: {sum(r['status'] == 'pending' for r in relocs)}\n")
 
 
-def compile_object(cc, cpu, opt, source, obj):
+def compile_object(cc, cpu, opt, source, obj, *, extra_flags=(), **run_options):
     # The pinned Zig driver maps O1/O3 to O2 and Oz to Os. Forward the exact
     # requested level to Clang cc1 as well so the sweep runs distinct profiles.
     subprocess.run([*cc, "-target", TARGET, "-mcpu=" + cpu, "-" + opt, "-Xclang", "-" + opt, *FLAGS,
-                    "-I", str(ROOT / "vendor/eowrecomp/runtime"), "-c", str(source), "-o", str(obj)], check=True)
+                    *extra_flags, "-I", str(ROOT / "vendor/eowrecomp/runtime"), "-c", str(source), "-o", str(obj)],
+                   check=True, **run_options)
 
 
 def compare(args, db, folder, image, fn):

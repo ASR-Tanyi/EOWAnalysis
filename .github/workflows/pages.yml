@@ -1,0 +1,128 @@
+name: Publish ExeFS explorer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eow-pages
+  cancel-in-progress: false
+
+jobs:
+  index:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      inputs: ${{ steps.plan.outputs.inputs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt ziglang==0.17.0.post0
+      - run: python tools/eow.py index
+      - run: python -m unittest discover -s tests -v
+      - id: plan
+        run: |
+          echo "matrix=$(python tools/pages.py plan)" >> "$GITHUB_OUTPUT"
+          echo "inputs=$(git ls-tree -r HEAD -- ExeFS tools requirements.txt vendor/eowrecomp .github/workflows/pages.yml | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eow-index
+          path: build/index.sqlite
+          retention-days: 1
+
+  functions:
+    needs: index
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix: ${{ fromJSON(needs.index.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: build/shards
+          key: eow-pages-${{ needs.index.outputs.inputs }}-${{ matrix.key }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: python -m pip install -r requirements.txt ziglang==0.17.0.post0
+      - if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: eow-index
+          path: build
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: python tools/pages.py shard "${{ matrix.module }}" "${{ matrix.first }}" "${{ matrix.last }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eow-blocks-${{ matrix.key }}
+          path: build/shards
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+
+  assemble:
+    needs: functions
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt ziglang==0.17.0.post0
+      - uses: actions/download-artifact@v4
+        with:
+          name: eow-index
+          path: build
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: eow-blocks-*
+          merge-multiple: true
+          path: build/shards
+      - run: python tools/pages.py finish --revision "$GITHUB_SHA"
+      - name: Check navigation, graph and AArch64 comparison in Chromium
+        run: |
+          python -m pip install playwright==1.62.0
+          python -m playwright install --with-deps chromium
+          python tests/pages_browser.py build/site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/site
+
+  deploy:
+    needs: assemble
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Publish GitHub Pages
+        id: publish
+        uses: actions/deploy-pages@v4

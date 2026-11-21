@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#f7f8f4" />
+    <title>Echoes of Wisdom · ExeFS Explorer</title>
+    <link rel="icon" href="mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <a class="skip" href="#content">Skip to content</a>
+    <aside id="rail">
+      <a class="brand" href="#overview"
+        ><img src="mark.svg" alt="" /><span>ExeFS <b>Explorer</b></span></a
+      >
+      <div class="project"><span class="signal"></span> Echoes of Wisdom</div>
+      <p class="group-label">Workspace</p>
+      <nav id="primary" aria-label="Workspace"></nav>
+      <p class="group-label">Executable modules</p>
+      <nav id="module-nav" aria-label="Modules"></nav>
+      <div class="rail-foot">
+        <a class="repo" href="https://github.com/ASR-Tanyi/EOWAnalysis"
+          >Source repository ↗</a
+        ><small id="revision"></small>
+      </div>
+    </aside>
+    <div class="shell">
+      <header class="bar">
+        <button class="mobile-menu icon-btn" aria-label="Toggle navigation">
+          ☰</button
+        ><span id="crumb">Workspace / Overview</span>
+        <button class="search-trigger" id="open-search">
+          <span aria-hidden="true">⌕</span> Find a function <kbd>/</kbd>
+        </button>
+      </header>
+      <main id="content" tabindex="-1">
+        <div class="loading" role="status">Loading the analysis index…</div>
+      </main>
+    </div>
+    <dialog id="finder" aria-labelledby="search-label">
+      <form method="dialog" class="dialog-top">
+        <label for="search-box" id="search-label">Find a function</label
+        ><button aria-label="Close search">Esc</button>
+      </form>
+      <input
+        id="search-box"
+        type="search"
+        placeholder="Symbol, module+offset or guest address"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <div id="search-results" aria-live="polite"></div>
+    </dialog>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

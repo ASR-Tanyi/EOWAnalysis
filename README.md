@@ -2,6 +2,8 @@
 
 The game entry in this upload is **`nnMain` at `main+0x360b70`**. Its dynamic symbol and unwind record identify the same start, and the SDK calls it through a verified import stub. The ACI0 program ID is `01008CF01BAAC000`. The `main` NSO build ID is `9f221e1afa65ba5443e955158ab97da871e5e41f`. Use the build ID when comparing addresses across copies of the game.
 
+Open the [ExeFS Explorer](https://asr-tanyi.github.io/EOWAnalysis/) to browse the analysis in a browser. [Entry points](https://asr-tanyi.github.io/EOWAnalysis/#entries) · [Call graph](https://asr-tanyi.github.io/EOWAnalysis/#graph) · [Rebuild comparisons](https://asr-tanyi.github.io/EOWAnalysis/#rebuilds)
+
 | Start here | What it contains |
 | --- | --- |
 | [nnMain.asm](analysis/nnMain.asm) | Original instruction words, AArch64 disassembly, local branch labels, calls and unresolved exits |
@@ -135,6 +137,24 @@ python tools/match.py main:0x2362258 --linked build/match/tree.elf --require-exa
 **How to reduce a new difference.** Start with the first changed instruction in a short function with known inputs. Recover the parameter types, signedness and field offsets from its callers and loads. If the difference is in a branch immediate, inspect its relocation. If it is an extra load, register move or stack spill, check the C signature and value lifetimes first, then sweep the optimization levels. In the tree cleanup, `-O2` produced an extra move before its first recursive call. `-Os` removed it. For another compiler or SDK build, pass its unstripped AArch64 ELF using `--object path/to/file.o`, or use `--linked` for a static ELF linked at the original address.
 
 The regression test rebuilds the five setters at `main+0xbde10`, `+0xbde3c`, `+0xbde5c`, `+0xbde7c` and `+0xbde9c`, plus the cleanup at `main+0x2362258`. It reads the original text independently and checks the cleanup again with LLD. Run `python -m unittest discover -s tests -v` after setup. [Setter source](matching/setters.c) · [Tree cleanup source](matching/tree.c)
+
+## Publish the HTML explorer
+
+[Publish ExeFS explorer](.github/workflows/pages.yml) runs on pushes to `main` and from **Actions → Publish ExeFS explorer → Run workflow**. The repository's Pages source is configured under **Settings → Pages → Build and deployment → Source → GitHub Actions**.
+
+Every indexed function and import stub gets a bookmarkable page with annotated assembly, downloadable C, incoming and outgoing transfers, and an AArch64 byte comparison. The entry-point page follows the loader through the two import stubs to `nnMain`. On the graph tab, follow a caller or callee to re-center the graph or click a call site to jump to the original assembly. Register-indirect destinations stay visible as unresolved.
+
+The workflow indexes the ExeFS once, partitions the five modules by address, and compiles each block of lifted C for AArch64 at `-O2`. It retains function boundaries with `noinline` on lifted entries and position-independent, interposable calls. The selected profile for an individual build can differ from this grouped build. A batch compiler error is isolated to one function and shown with its diagnostic. The viewer displays the original bytes beside the rebuilt words after known fixups, with rebuilt instructions decoded on demand by the bundled ARM64 Capstone.js decoder. The standalone tab reruns five optimization profiles for `nnMain` and the six native C fixtures, including the independently linked tree cleanup.
+
+Each deployment validates the count and checksum of every required block, checks the size of the assembled site and runs a Chromium navigation test. A missing block prevents deployment. The site fetches compressed function data as needed and keeps the full `nnMain` graph available as a TSV download. [Capstone.js v5.0.9](https://github.com/AlexAltea/capstone.js/releases/tag/v5.0.9)
+
+To build the site locally after installing the analysis requirements and Zig, run the following from the repository root. The build takes an empty output directory. Serve the result over HTTP to use the explorer.
+
+```sh
+python tools/eow.py index
+python tools/pages.py build
+python -m http.server --directory build/site
+```
 
 ## Work plan
 
