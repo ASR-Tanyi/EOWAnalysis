@@ -1,0 +1,3 @@
+[submodule "vendor/eowrecomp"]
+	path = vendor/eowrecomp
+	url = https://github.com/Nycolazs/EoWRecomp.git

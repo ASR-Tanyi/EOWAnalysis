@@ -1,0 +1,185 @@
+{
+  "program_id": "01008CF01BAAC000",
+  "modules": {
+    "rtld": {
+      "build_id": "7ad52a1ced5e59626eb0e863b00169b0c0254611",
+      "file_sha256": "f4844ac21032c9c749014863a0da7ff7abee45b0c1929e8fe2ccdf002f2d851a",
+      "visited_words": 2279,
+      "switch_sites": 3,
+      "jump": 122,
+      "conditional": 265,
+      "call": 80,
+      "jump-register": 2,
+      "call-register": 10,
+      "switch": 50,
+      "switch-fallback": 3,
+      "return": 42,
+      "functions": 34,
+      "bounded_bytes": 9248,
+      "text_bytes": 9536,
+      "plt_stubs": 1,
+      "jump_slots": 1,
+      "code_pointers": {
+        "RELR": 11
+      },
+      "unresolved_import_stubs": 0
+    },
+    "main": {
+      "build_id": "9f221e1afa65ba5443e955158ab97da871e5e41f",
+      "file_sha256": "f180cb64ad2b801a8519462a49ce6dc79beeb17964347611f7acfc51c19cda2f",
+      "visited_words": 10330778,
+      "switch_sites": 933,
+      "conditional": 1225614,
+      "call": 292545,
+      "call-register": 307524,
+      "return": 180521,
+      "jump": 336315,
+      "jump-register": 13850,
+      "switch": 8905,
+      "switch-fallback": 933,
+      "fallthrough": 6942,
+      "trap": 278,
+      "functions": 226437,
+      "bounded_bytes": 41795200,
+      "text_bytes": 42165584,
+      "plt_stubs": 629,
+      "jump_slots": 629,
+      "code_pointers": {
+        "RELR": 442746
+      },
+      "unresolved_import_stubs": 0
+    },
+    "subsdk0": {
+      "build_id": "d6ad4f66925e3458f012915646501b4d46ed9508",
+      "file_sha256": "475a3c89ec86b1968ed3783281ae36f0ee4416351d59fdb29d75ca81f5099cf9",
+      "visited_words": 4442183,
+      "switch_sites": 1598,
+      "conditional": 246243,
+      "call": 318293,
+      "call-register": 20113,
+      "return": 41264,
+      "jump": 74790,
+      "switch": 16913,
+      "switch-fallback": 1598,
+      "jump-register": 1291,
+      "trap": 7,
+      "fallthrough": 129,
+      "functions": 42500,
+      "bounded_bytes": 17949944,
+      "text_bytes": 18049376,
+      "plt_stubs": 145,
+      "jump_slots": 145,
+      "code_pointers": {
+        "RELR": 35493
+      },
+      "unresolved_import_stubs": 0
+    },
+    "subsdk1": {
+      "build_id": "a4108e77b80cd0a9221b085a8e2c42d4efaad583",
+      "file_sha256": "25fb20a51d992525c6dfdf043e2c9e45b99a806686b2bcbbef2506c0b58b6158",
+      "visited_words": 859713,
+      "switch_sites": 309,
+      "conditional": 78471,
+      "call": 51274,
+      "call-register": 4183,
+      "return": 12272,
+      "jump": 23053,
+      "jump-register": 227,
+      "fallthrough": 90,
+      "switch": 2324,
+      "switch-fallback": 309,
+      "trap": 307,
+      "functions": 13928,
+      "bounded_bytes": 3471116,
+      "text_bytes": 3501008,
+      "plt_stubs": 3816,
+      "jump_slots": 3816,
+      "code_pointers": {
+        "RELA": 2710,
+        "RELR": 2303
+      },
+      "unresolved_import_stubs": 0
+    },
+    "sdk": {
+      "build_id": "aa65d75ae1f61b1a2276f52a59f07d42836000a9",
+      "file_sha256": "797019ba22ea8a18a96784817a59f6aa03ad274d8af3adb7fa822acffb2bd015",
+      "visited_words": 1615659,
+      "switch_sites": 476,
+      "call": 73147,
+      "fallthrough": 3674,
+      "return": 33004,
+      "conditional": 137515,
+      "call-register": 12820,
+      "jump": 47248,
+      "jump-register": 2004,
+      "switch": 3445,
+      "switch-fallback": 476,
+      "trap": 275,
+      "functions": 40439,
+      "bounded_bytes": 6585592,
+      "text_bytes": 6692560,
+      "plt_stubs": 7809,
+      "jump_slots": 7809,
+      "code_pointers": {
+        "RELA": 4185,
+        "RELR": 11667
+      },
+      "unresolved_import_stubs": 0
+    }
+  },
+  "entry_points": {
+    "loader": {
+      "address": "rtld+0x0",
+      "size": 196,
+      "evidence": "FDE"
+    },
+    "sdk_start": {
+      "address": "sdk+0x110dd0",
+      "size": 96,
+      "evidence": "FDE+symbol"
+    },
+    "nnMain": {
+      "address": "main+0x360b70",
+      "size": 8456,
+      "evidence": "FDE+symbol"
+    }
+  },
+  "loader_to_sdk": [
+    {
+      "source": "rtld+0x0",
+      "site": "rtld+0x88",
+      "kind": "call",
+      "target": "rtld+0x2530",
+      "symbol": ""
+    },
+    {
+      "source": "rtld+0x2530",
+      "site": "rtld+0x253c",
+      "kind": "plt",
+      "target": "sdk+0x110dd0",
+      "symbol": "_ZN2nn4init5StartEmmPFvvES2_S2_"
+    }
+  ],
+  "sdk_to_nnMain": [
+    {
+      "source": "sdk+0x110dd0",
+      "site": "sdk+0x110e20",
+      "kind": "call",
+      "target": "sdk+0x647140",
+      "symbol": ""
+    },
+    {
+      "source": "sdk+0x647140",
+      "site": "sdk+0x64714c",
+      "kind": "plt",
+      "target": "main+0x360b70",
+      "symbol": "nnMain"
+    }
+  ],
+  "reachable_from_nnMain_including_root_and_stubs": 3970,
+  "outgoing_sites_in_nnMain": {
+    "call": 160,
+    "call-register": 80,
+    "fallthrough": 1
+  }
+}

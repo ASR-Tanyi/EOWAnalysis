@@ -1,0 +1,79 @@
+{
+  "assembly_files": 323338,
+  "c_files": 323338,
+  "unsupported_lift_events": 1,
+  "modules": {
+    "rtld": {
+      "build_id": "7ad52a1ced5e59626eb0e863b00169b0c0254611",
+      "asm": {
+        "files": 34,
+        "bytes": 130869
+      },
+      "c": {
+        "files": 34,
+        "bytes": 206038,
+        "unsupported_lift_events": 0,
+        "unsupported_sites": []
+      }
+    },
+    "main": {
+      "build_id": "9f221e1afa65ba5443e955158ab97da871e5e41f",
+      "asm": {
+        "files": 226437,
+        "bytes": 592123155
+      },
+      "c": {
+        "files": 226437,
+        "bytes": 693374459,
+        "unsupported_lift_events": 0,
+        "unsupported_sites": []
+      }
+    },
+    "subsdk0": {
+      "build_id": "d6ad4f66925e3458f012915646501b4d46ed9508",
+      "asm": {
+        "files": 42500,
+        "bytes": 238147779
+      },
+      "c": {
+        "files": 42500,
+        "bytes": 322134958,
+        "unsupported_lift_events": 0,
+        "unsupported_sites": []
+      }
+    },
+    "subsdk1": {
+      "build_id": "a4108e77b80cd0a9221b085a8e2c42d4efaad583",
+      "asm": {
+        "files": 13928,
+        "bytes": 50342451
+      },
+      "c": {
+        "files": 13928,
+        "bytes": 65711314,
+        "unsupported_lift_events": 0,
+        "unsupported_sites": []
+      }
+    },
+    "sdk": {
+      "build_id": "aa65d75ae1f61b1a2276f52a59f07d42836000a9",
+      "asm": {
+        "files": 40439,
+        "bytes": 96025164
+      },
+      "c": {
+        "files": 40439,
+        "bytes": 125750132,
+        "unsupported_lift_events": 1,
+        "unsupported_sites": [
+          {
+            "site": "sdk+0x63e990",
+            "function": "sdk+0x63e8d0",
+            "word": "d9200908",
+            "asm": "stg x8, [x8]"
+          }
+        ]
+      }
+    }
+  }
+}
