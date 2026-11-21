@@ -9,6 +9,7 @@ The game entry in this upload is **`nnMain` at `main+0x360b70`**. Its dynamic sy
 | [nnMain.graph.tsv.gz](analysis/nnMain.graph.tsv.gz) | The full static traversal from `nnMain`, with one row per transfer site and target |
 | [baseline.json](analysis/baseline.json) | Input hashes and build IDs, function and switch counts, startup edges and unresolved transfers |
 | [exports.json](analysis/exports.json) | Per-module assembly and C export counts, byte totals and unsupported instructions |
+| [AArch64 rebuild results](#match-rebuilt-aarch64-instruction-bytes) | Commands, real binary differences and six functions that rebuild byte-for-byte |
 
 ## How execution reaches the game
 
@@ -88,6 +89,53 @@ The following command compiled the checked-in `nnMain.c` into a Windows x64 COFF
 python -m ziglang cc -target x86_64-windows-gnu -mcpu=x86_64_v3 -O1 -fno-strict-aliasing -Wno-deprecated-declarations -Ivendor/eowrecomp/runtime -c analysis/nnMain.c -o build/nnMain.obj
 ```
 
+## Match rebuilt AArch64 instruction bytes
+
+Use an **AArch64 build** to match the Switch instructions. Use the x64 build and the differential test above to check Windows-port behavior. The existing C lift takes a `Cpu *` and explicitly maintains guest registers. C written with the original calling convention can instead pass an object pointer in `x0` and a float in `s0`. The compiler can then emit the same loads, comparisons and stores as the game. [Arm procedure call standard](https://github.com/ARM-software/abi-aa/blob/main/aapcs64/aapcs64.rst)
+
+From the repository root, initialize the tools and build the index once.
+
+```sh
+git submodule update --init
+python -m pip install -r requirements.txt ziglang==0.17.0.post0
+python tools/eow.py index
+```
+
+Compile the checked-in `nnMain.c` and compare it to precisely the `nnMain` extent in the decompressed `main` NSO. Then compile two native-ABI reconstructions. The optimization sweep retains the closest result and reports every profile it tested.
+
+```sh
+python tools/match.py main:nnMain --source analysis/nnMain.c --opts O1 O2 O3 Os Oz --out build/match/nnMain
+python tools/match.py main:0xbde10 --source matching/setters.c --opts O2 --require-exact --out build/match/setter
+python tools/match.py main:0x2362258 --source matching/tree.c --opts O2 Os --require-exact --out build/match/tree
+```
+
+Open `diff.txt` in the selected output directory for the instruction diff. `original.bin` holds the original function bytes, `input.bin` holds the rebuilt symbol bytes before any comparator fixups, and `rebuilt.bin` holds the result at the original guest address. The directory also contains both disassemblies, the compiled ELF, `relocations.json` and `report.json`. Omitting `--source` generates and compiles the existing CPU-state lift for any indexed function. Use `--symbol` if the compiled C uses a different function name.
+
+| Function and source | Profile | Original bytes | Rebuilt bytes | Differing bytes after placement |
+| --- | --- | ---: | ---: | ---: |
+| [Setter, CPU-state lift](analysis/matching/setter-lifted.json) | `-Os` | 44 | 204 | 201 |
+| [Setter, native arguments](analysis/matching/setter.json) | `-O2` | 44 | 44 | **0** |
+| [Recursive tree cleanup, native arguments](analysis/matching/tree.json) | `-O2` | 56 | 60 | 45 |
+| Same tree cleanup | `-Os` | 56 | 56 | **0** |
+| [nnMain, checked-in CPU-state lift](analysis/matching/nnMain.json) | `-Oz` | 8,456 | 23,936 | 23,393, with 143 pending relocations |
+
+These measurements use Clang 22.1.8, the `aarch64-linux-musl` target and `cortex_a57` tuning. The original compiler version and flags are unknown. The comparison build uses per-function sections and disables machine outlining to keep repeated instruction sequences in the function being scored.
+
+**How the score works.** A differing byte at the same function offset counts once. Extra or missing tail bytes also count once each. An exact result requires equal lengths, identical bytes and zero pending relocations. The sweep picks an exact result first, then minimizes differing bytes, then pending relocations, keeping the first profile on a tie. `diff.txt` aligns matching instruction runs so an inserted instruction is easier to see. The byte score always uses the original offsets.
+
+**How branches are compared.** An ELF object can contain placeholders for `bl` and `b`. The tool resolves `CALL26` and `JUMP26` from the symbol, addend, rebuilt instruction address and verified guest target. Targets may be the function itself, an indexed address-based function or a unique import stub in the caller's module. Other fixups remain visible as pending. [Actual tree fixups](analysis/matching/tree-relocations.json) · [Arm ELF relocation definitions](https://github.com/ARM-software/abi-aa/blob/main/aaelf64/aaelf64.rst)
+
+For an independent check, let LLVM's linker place the recursive function at its original address and bind `_ZdlPv` to the address of the game's import stub. Run these commands after the tree comparison above. The resulting ELF's function body matches all 56 bytes, including both recursive calls and the tail branch to `operator delete`. [Linked ELF comparison](analysis/matching/tree-linked.json)
+
+```sh
+python -m ziglang ld.lld -m aarch64elf -Ttext=0x7002362258 --defsym=_ZdlPv=0x7002833e20 -e f_7002362258 -o build/match/tree.elf build/match/tree/rebuilt.o
+python tools/match.py main:0x2362258 --linked build/match/tree.elf --require-exact --out build/match/tree-linked
+```
+
+**How to reduce a new difference.** Start with the first changed instruction in a short function with known inputs. Recover the parameter types, signedness and field offsets from its callers and loads. If the difference is in a branch immediate, inspect its relocation. If it is an extra load, register move or stack spill, check the C signature and value lifetimes first, then sweep the optimization levels. In the tree cleanup, `-O2` produced an extra move before its first recursive call. `-Os` removed it. For another compiler or SDK build, pass its unstripped AArch64 ELF using `--object path/to/file.o`, or use `--linked` for a static ELF linked at the original address.
+
+The regression test rebuilds the five setters at `main+0xbde10`, `+0xbde3c`, `+0xbde5c`, `+0xbde7c` and `+0xbde9c`, plus the cleanup at `main+0x2362258`. It reads the original text independently and checks the cleanup again with LLD. Run `python -m unittest discover -s tests -v` after setup. [Setter source](matching/setters.c) · [Tree cleanup source](matching/tree.c)
+
 ## Work plan
 
 | Stage | Status and completion criterion |
@@ -95,7 +143,7 @@ python -m ziglang cc -target x86_64-windows-gnu -mcpu=x86_64_v3 -O1 -fno-strict-
 | 1. Identify the build and recover the entry | Complete for these five modules. The baseline records the input hashes, verified function extents and both startup imports. |
 | 2. Split code and data and export control flow | Complete for the 323,338 bounded entries. Assembly and C counts are reproducible per module. The SQLite index, raw segments, per-function CFGs and reachable graph can be regenerated independently. |
 | 3. Resolve indirect game calls | Start at `main+0x360dd4`. Trace the receiver and its possible table initializers, cross-check each slot against relocated data, and record the evidence for each target. Repeat for the remaining register calls in `nnMain` and expand the graph from newly confirmed callees. |
-| 4. Validate the C across more functions | The first differential fixture and the `nnMain` object build pass. Add fixtures for a recovered switch, a call with side effects and floating-point edge cases. Resolve the SDK `stg` trap or establish how the reference runtime handles its path. Record the first mismatching instruction or state field for any failure. |
+| 4. Validate the C across more functions | Six native-ABI functions reproduce the original AArch64 bytes, including a callee of `nnMain`. The CPU-state lift also has a passing x64 differential fixture. Recover more native signatures along the `nnMain` call path, add fixtures for a switch and floating-point edge cases, and resolve the SDK `stg` path. |
 | 5. Run a Windows startup slice | Build revision-specific dispatch and relocation tables, wire the SDK services reached by startup, then link and run from the loader to `nnMain` on Windows. Compare a startup trace with the ARM64 reference before expanding to assets and rendering. |
 
 The upstream dependency has its own license and is pinned by the repository's submodule revision. [EoWRecomp](https://github.com/Nycolazs/EoWRecomp)

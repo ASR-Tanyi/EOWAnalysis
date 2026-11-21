@@ -1,0 +1,26 @@
+[
+  {
+    "offset": 24,
+    "type": "R_AARCH64_CALL26",
+    "symbol": "f_7002362258",
+    "addend": 0,
+    "status": "applied",
+    "destination": "main+0x2362258"
+  },
+  {
+    "offset": 32,
+    "type": "R_AARCH64_CALL26",
+    "symbol": "f_7002362258",
+    "addend": 0,
+    "status": "applied",
+    "destination": "main+0x2362258"
+  },
+  {
+    "offset": 48,
+    "type": "R_AARCH64_JUMP26",
+    "symbol": "_ZdlPv",
+    "addend": 0,
+    "status": "applied",
+    "destination": "main+0x2833e20"
+  }
+]

@@ -1,0 +1,91 @@
+{
+  "function": "main+0xbde10",
+  "build_id": "9f221e1afa65ba5443e955158ab97da871e5e41f",
+  "symbol": "f_70000bde10",
+  "original_bytes": 44,
+  "original_sha256": "fafcb1133fdbf522aa77de27abed8ba7dc521ec247caf2611d521945e267d58a",
+  "source": "setters.c",
+  "source_sha256": "0bf9a41e5abd580d1fefd6ba4aa9cbcd893e31ab1464e9012c2a4bdd0414004b",
+  "compiler": {
+    "ziglang": "0.17.0.post0",
+    "clang": "clang version 22.1.8",
+    "target": "aarch64-linux-musl",
+    "cpu": "cortex_a57",
+    "flags": [
+      "-{profile}",
+      "-Xclang",
+      "-{profile}",
+      "-fno-omit-frame-pointer",
+      "-momit-leaf-frame-pointer",
+      "-fno-stack-protector",
+      "-fno-strict-aliasing",
+      "-ffunction-sections",
+      "-mno-outline",
+      "-Wno-deprecated-declarations",
+      "-g0"
+    ]
+  },
+  "selected": "O1",
+  "candidates": [
+    {
+      "profile": "O1",
+      "compiled_bytes": 44,
+      "raw_different_bytes": 0,
+      "placed_different_bytes": 0,
+      "first_different_byte": null,
+      "equal_words_at_same_offset": 11,
+      "applied_relocations": 0,
+      "pending_relocations": 0,
+      "placed_sha256": "fafcb1133fdbf522aa77de27abed8ba7dc521ec247caf2611d521945e267d58a",
+      "exact": true
+    },
+    {
+      "profile": "O2",
+      "compiled_bytes": 44,
+      "raw_different_bytes": 0,
+      "placed_different_bytes": 0,
+      "first_different_byte": null,
+      "equal_words_at_same_offset": 11,
+      "applied_relocations": 0,
+      "pending_relocations": 0,
+      "placed_sha256": "fafcb1133fdbf522aa77de27abed8ba7dc521ec247caf2611d521945e267d58a",
+      "exact": true
+    },
+    {
+      "profile": "O3",
+      "compiled_bytes": 44,
+      "raw_different_bytes": 0,
+      "placed_different_bytes": 0,
+      "first_different_byte": null,
+      "equal_words_at_same_offset": 11,
+      "applied_relocations": 0,
+      "pending_relocations": 0,
+      "placed_sha256": "fafcb1133fdbf522aa77de27abed8ba7dc521ec247caf2611d521945e267d58a",
+      "exact": true
+    },
+    {
+      "profile": "Os",
+      "compiled_bytes": 44,
+      "raw_different_bytes": 0,
+      "placed_different_bytes": 0,
+      "first_different_byte": null,
+      "equal_words_at_same_offset": 11,
+      "applied_relocations": 0,
+      "pending_relocations": 0,
+      "placed_sha256": "fafcb1133fdbf522aa77de27abed8ba7dc521ec247caf2611d521945e267d58a",
+      "exact": true
+    },
+    {
+      "profile": "Oz",
+      "compiled_bytes": 44,
+      "raw_different_bytes": 0,
+      "placed_different_bytes": 0,
+      "first_different_byte": null,
+      "equal_words_at_same_offset": 11,
+      "applied_relocations": 0,
+      "pending_relocations": 0,
+      "placed_sha256": "fafcb1133fdbf522aa77de27abed8ba7dc521ec247caf2611d521945e267d58a",
+      "exact": true
+    }
+  ]
+}

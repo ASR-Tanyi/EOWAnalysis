@@ -1,0 +1,23 @@
+{
+  "function": "main+0x2362258",
+  "build_id": "9f221e1afa65ba5443e955158ab97da871e5e41f",
+  "symbol": "f_7002362258",
+  "original_bytes": 56,
+  "original_sha256": "11686f77b3af9591ede3d72143ced98c63fe4699c9d5827063d3e90ad955c802",
+  "input_sha256": "c08d4d4ba821cad50ecee36098a7460acefbe8f771e14ae471a021a6ae2fd49b",
+  "selected": "linked",
+  "candidates": [
+    {
+      "profile": "linked",
+      "compiled_bytes": 56,
+      "raw_different_bytes": 0,
+      "placed_different_bytes": 0,
+      "first_different_byte": null,
+      "equal_words_at_same_offset": 14,
+      "applied_relocations": 0,
+      "pending_relocations": 0,
+      "placed_sha256": "11686f77b3af9591ede3d72143ced98c63fe4699c9d5827063d3e90ad955c802",
+      "exact": true
+    }
+  ]
+}

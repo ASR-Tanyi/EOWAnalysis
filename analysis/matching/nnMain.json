@@ -1,0 +1,91 @@
+{
+  "function": "main+0x360b70",
+  "build_id": "9f221e1afa65ba5443e955158ab97da871e5e41f",
+  "symbol": "f_7000360b70",
+  "original_bytes": 8456,
+  "original_sha256": "2f1c6b7336eb952a835c93ab8283b4ddac38389d4001a42a433fd5813362f29f",
+  "source": "nnMain.c",
+  "source_sha256": "3d0ecfa07548a691052979f883f6b8ef2a4b3213c3c3c1cf33a61f7d41df613b",
+  "compiler": {
+    "ziglang": "0.17.0.post0",
+    "clang": "clang version 22.1.8",
+    "target": "aarch64-linux-musl",
+    "cpu": "cortex_a57",
+    "flags": [
+      "-{profile}",
+      "-Xclang",
+      "-{profile}",
+      "-fno-omit-frame-pointer",
+      "-momit-leaf-frame-pointer",
+      "-fno-stack-protector",
+      "-fno-strict-aliasing",
+      "-ffunction-sections",
+      "-mno-outline",
+      "-Wno-deprecated-declarations",
+      "-g0"
+    ]
+  },
+  "selected": "Oz",
+  "candidates": [
+    {
+      "profile": "O1",
+      "compiled_bytes": 25440,
+      "raw_different_bytes": 24917,
+      "placed_different_bytes": 24937,
+      "first_different_byte": 1,
+      "equal_words_at_same_offset": 1,
+      "applied_relocations": 160,
+      "pending_relocations": 123,
+      "placed_sha256": "f06bbffa88f35d66ff1666c3e33bf3b1d30c52a6be0ec64370f4dc51c2e81e71",
+      "exact": false
+    },
+    {
+      "profile": "O2",
+      "compiled_bytes": 24972,
+      "raw_different_bytes": 24435,
+      "placed_different_bytes": 24453,
+      "first_different_byte": 1,
+      "equal_words_at_same_offset": 2,
+      "applied_relocations": 160,
+      "pending_relocations": 119,
+      "placed_sha256": "488153462d4b4faa1eccd6187c6d70136b1b52419dc387eec629d1d433508f7b",
+      "exact": false
+    },
+    {
+      "profile": "O3",
+      "compiled_bytes": 26528,
+      "raw_different_bytes": 25998,
+      "placed_different_bytes": 26015,
+      "first_different_byte": 1,
+      "equal_words_at_same_offset": 5,
+      "applied_relocations": 160,
+      "pending_relocations": 119,
+      "placed_sha256": "513787edf20ec6e4557fc2c877e8136a061d0b7a9afd11d2f1efcf6d8d89097e",
+      "exact": false
+    },
+    {
+      "profile": "Os",
+      "compiled_bytes": 24436,
+      "raw_different_bytes": 23869,
+      "placed_different_bytes": 23887,
+      "first_different_byte": 1,
+      "equal_words_at_same_offset": 1,
+      "applied_relocations": 160,
+      "pending_relocations": 119,
+      "placed_sha256": "8d4adc0751a587c1f54be36f11fa2a50ac02f6bbc5b173b5dd7bc401220d8b53",
+      "exact": false
+    },
+    {
+      "profile": "Oz",
+      "compiled_bytes": 23936,
+      "raw_different_bytes": 23373,
+      "placed_different_bytes": 23393,
+      "first_different_byte": 1,
+      "equal_words_at_same_offset": 2,
+      "applied_relocations": 160,
+      "pending_relocations": 143,
+      "placed_sha256": "e7e545bfc5c4323370f89b6d62f1c4ae58a2f82b05752f4eb88098cfed275be9",
+      "exact": false
+    }
+  ]
+}
