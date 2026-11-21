@@ -33,7 +33,12 @@ jobs:
       - id: plan
         run: |
           echo "matrix=$(python tools/pages.py plan)" >> "$GITHUB_OUTPUT"
-          echo "inputs=$(git ls-tree -r HEAD -- ExeFS tools requirements.txt vendor/eowrecomp .github/workflows/pages.yml | sha256sum | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+          inputs=$({
+            git ls-tree -r HEAD -- ExeFS tools requirements.txt vendor/eowrecomp
+            python -m ziglang version
+            python --version
+          } | sha256sum | cut -d ' ' -f 1)
+          echo "inputs=$inputs" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
           name: eow-index

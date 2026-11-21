@@ -79,11 +79,14 @@ def object_functions(path, linked_at=None):
                 if start != linked_at:
                     raise ValueError(f"Linked symbol is at {start:#x}, expected {linked_at:#x}")
                 start -= section["sh_addr"]
-            if (not section["sh_flags"] & 4 or section["sh_type"] != "SHT_PROGBITS" or not size or start < 0 or
+            # A compiler can emit an empty function section (e.g. an optimized null store).
+            # A zero size in a populated section can instead mean the ELF omits the extent.
+            empty_section = linked_at is None and section.data_size == 0
+            if (not section["sh_flags"] & 4 or section["sh_type"] != "SHT_PROGBITS" or (not size and not empty_section) or start < 0 or
                     start % 4 or size % 4 or start + size > section.data_size):
                 raise ValueError(f"Invalid AArch64 function extent for {name!r}")
             body = section.data()[start:start + size]
-            if linked_at is not None:
+            if linked_at is not None or not size:
                 return body, []
             relocs = []
             for rs in relocations.get(sym["st_shndx"], ()):

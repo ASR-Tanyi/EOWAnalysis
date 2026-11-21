@@ -47,6 +47,23 @@ class MatchTests(unittest.TestCase):
             self.assertEqual(result["equal_words_at_same_offset"], 1)
             self.assertFalse(result["exact"])
 
+    @unittest.skipUnless(importlib.util.find_spec("ziglang"), "requires ziglang")
+    def test_empty_compiler_section_and_unsized_symbol(self):
+        with tempfile.TemporaryDirectory() as temp:
+            src, obj = (Path(temp) / name for name in ("empty.s", "empty.o"))
+            src.write_text('.section .text.empty,"ax"\n.globl empty\n.type empty,%function\nempty:\n.size empty,.-empty\n'
+                           '.section .text.unknown,"ax"\n.globl unknown\n.type unknown,%function\nunknown:\nret\n')
+            subprocess.run([sys.executable, "-m", "ziglang", "cc", "-target", "aarch64-linux-musl",
+                            "-c", str(src), "-o", str(obj)], check=True)
+            raw, relocs = object_function(obj, "empty")
+            self.assertEqual((raw, relocs), (b"", []))
+            result = measure(bytes.fromhex("c0035fd6"), raw, raw, relocs)
+            self.assertEqual((result["compiled_bytes"], result["placed_different_bytes"], result["first_different_byte"]),
+                             (0, 4, 0))
+            self.assertFalse(result["exact"])
+            with self.assertRaisesRegex(ValueError, "Invalid AArch64 function extent"):
+                object_function(obj, "unknown")
+
     @unittest.skipUnless(importlib.util.find_spec("ziglang") and (ROOT / "build/index.sqlite").is_file(),
                          "requires ziglang and the ExeFS index")
     def test_six_game_functions_match_compiled_c(self):

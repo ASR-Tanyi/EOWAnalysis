@@ -94,7 +94,11 @@ def compile_group(db, module, image, rows, folder):
     with object_functions(obj) as read:
         for fn, rec in rows:
             symbol = f"f_{fn.start:x}"
-            raw, relocs = read(symbol)
+            try:
+                raw, relocs = read(symbol)
+            except ValueError as error:
+                rec["rebuild"] = {"error": f"Cannot compare this compiler output: {error}"}
+                continue
             resolve = target_lookup(db, module, fn.start, symbol)
             placed, records = place_branches(raw, relocs, fn.start, resolve)
             orig = image.nso.image[fn.start-image.base:fn.end-image.base]
