@@ -153,6 +153,17 @@ function reportRows(report) {
       .join(""),
   );
 }
+export function downloadPanel() {
+  const m = state.manifest,
+    downloads = m.downloads || {};
+  const html = downloads.html || m.runUrl,
+    logs = downloads.logs || m.runUrl;
+  return `<section class="panel spaced"><div class="panel-head"><h3>Detailed comparison</h3></div>
+    <div class="tight"><p class="note">The local HTML shows original and rebuilt instructions side by side. The logs list changed words and relocation targets by function.</p>
+    <div class="filters">${html ? `<a class="button action" href="${e(html)}">Download local HTML ↗</a>` : ""}
+    ${logs ? `<a class="button" href="${e(logs)}">Download comparison logs ↗</a>` : ""}
+    ${!html && !logs ? "<code>python tools/pages.py build</code>" : ""}</div></div></section>`;
+}
 async function comparisonPanel(host, f, rec) {
   const available = standalone(f);
   host.innerHTML = `<div class="filters"><label for="compare-source">Comparison</label><select id="compare-source">${available ? `<option value="standalone">Individual build · ${e(available.source)}</option>` : ""}<option value="bulk">Corpus build · lifted C · -O2</option></select></div><div data-body></div>`;
@@ -183,6 +194,21 @@ async function comparisonPanel(host, f, rec) {
             exact: winner.exact,
           }
         : rec.rebuild;
+      area.innerHTML = `<div class="row"><h2>AArch64 rebuild</h2>${tag(m.exact ? "Byte-exact" : "Bytes differ", m.exact ? "ok" : "warn")}</div>
+        ${metrics([
+          [number(f.size), "Original bytes"],
+          [number(m.size), "Rebuilt bytes"],
+          [number(m.different), "Differing bytes"],
+          [number(m.pending), "Pending fixups"],
+        ])}
+        <p class="note">${single ? "Individual compilation · selected -" + e(d.report.selected) : "Grouped compilation · Clang -O2 · function inlining disabled between lifted entries"} · ${number(m.applied)} branch fixups applied. ${m.first == null ? "The byte sequences are identical." : "First differing byte at +" + hex(m.first) + "."}</p>
+        ${single ? `<details class="panel spaced"><summary>Optimization profiles (${d.report.candidates.length})</summary>${reportRows(d.report)}</details>` : ""}
+        ${d?.linked ? `<p class="tight note">Independent LLD link: ${d.linked.candidates[0].exact ? "exact" : "different"} at the original address.</p>` : ""}
+        `;
+      if (["summary", "index"].includes(state.manifest.reportMode)) {
+        area.insertAdjacentHTML("beforeend", downloadPanel());
+        return;
+      }
       const orig = originalWords(rec.asm),
         ready = single
           ? [
@@ -204,19 +230,13 @@ async function comparisonPanel(host, f, rec) {
           : m.fixups;
       const fx = new Map(fixes.map((x) => [x[0], x]));
       let dis = null;
-      area.innerHTML = `<div class="row"><h2>AArch64 rebuild</h2>${tag(m.exact ? "Byte-exact" : "Bytes differ", m.exact ? "ok" : "warn")}</div>
-        ${metrics([
-          [number(f.size), "Original bytes"],
-          [number(m.size), "Rebuilt bytes"],
-          [number(m.different), "Differing bytes"],
-          [number(m.pending), "Pending fixups"],
-        ])}
-        <p class="note">${single ? "Individual compilation · selected -" + e(d.report.selected) : "Grouped compilation · Clang -O2 · function inlining disabled between lifted entries"} · ${number(m.applied)} branch fixups applied. ${m.first == null ? "The byte sequences are identical." : "First differing byte at +" + hex(m.first) + "."}</p>
-        ${single ? `<details class="panel spaced"><summary>Optimization profiles (${d.report.candidates.length})</summary>${reportRows(d.report)}</details>` : ""}
-        ${d?.linked ? `<p class="tight note">Independent LLD link: ${d.linked.candidates[0].exact ? "exact" : "different"} at the original address.</p>` : ""}
+      area.insertAdjacentHTML(
+        "beforeend",
+        `
         <div class="section-head"><h2>Instruction comparison</h2><label class="compact"><input type="checkbox" data-changed> Changed words only</label></div>
         <div class="panel" data-words></div><p class="note tight" data-decode></p>
-        <details class="panel"><summary>Relocations (${number(fixes.length)})</summary><div data-fix></div></details>`;
+        <details class="panel"><summary>Relocations (${number(fixes.length)})</summary><div data-fix></div></details>`,
+      );
       const changed = area.querySelector("[data-changed]"),
         grid = area.querySelector("[data-words]"),
         info = area.querySelector("[data-decode]");
@@ -320,7 +340,11 @@ export async function functionView(host, module, rva, tab, params) {
       )
       .join("")}</nav><div data-function></div>`;
   const body = host.querySelector("[data-function]");
-  if (tab === "asm")
+  if ((tab === "asm" && rec.asm == null) || (tab === "c" && rec.c == null)) {
+    body.innerHTML =
+      '<p class="note">The full listing for this function is in the local HTML archive.</p>' +
+      downloadPanel();
+  } else if (tab === "asm")
     codePanel(
       body,
       rec.asm,

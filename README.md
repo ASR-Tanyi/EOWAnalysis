@@ -142,18 +142,26 @@ The regression test rebuilds the five setters at `main+0xbde10`, `+0xbde3c`, `+0
 
 [Publish ExeFS explorer](.github/workflows/pages.yml) runs on pushes to `main` and from **Actions → Publish ExeFS explorer → Run workflow**. The repository's Pages source is configured under **Settings → Pages → Build and deployment → Source → GitHub Actions**.
 
-Every indexed function and import stub gets a bookmarkable page with annotated assembly, downloadable C, incoming and outgoing transfers, and an AArch64 byte comparison. The entry-point page follows the loader through the two import stubs to `nnMain`. On the graph tab, follow a caller or callee to re-center the graph or click a call site to jump to the original assembly. Register-indirect destinations stay visible as unresolved.
+Every indexed function and import stub gets a bookmarkable page with assembly, C, incoming and outgoing transfers, and a short rebuild report. The report gives original and rebuilt sizes, differing bytes, first difference and pending relocations. Follow a caller or callee to re-center the graph, or select a call site to open the original assembly. The entry-point page traces the startup path to `nnMain`. The complete reachable graph is also available as a TSV download.
 
-The workflow indexes the ExeFS once, partitions the five modules by address, and compiles each block of lifted C for AArch64 at `-O2`. It retains function boundaries with `noinline` on lifted entries and position-independent, interposable calls. The selected profile for an individual build can differ from this grouped build. A batch compiler error is isolated to one function and shown with its diagnostic. The viewer displays the original bytes beside the rebuilt words after known fixups, with rebuilt instructions decoded on demand by the bundled ARM64 Capstone.js decoder. The standalone tab reruns five optimization profiles for `nnMain` and the six native C fixtures, including the independently linked tree cleanup.
+**Detailed comparisons** are attached to each successful workflow run for 14 days. The public Rebuild tab links to both downloads. GitHub may ask you to sign in to download an Actions artifact.
 
-Each deployment validates the count and checksum of every required block, checks the size of the assembled site and runs a Chromium navigation test. A missing block prevents deployment. The site fetches compressed function data as needed and keeps the full `nnMain` graph available as a TSV download. [Capstone.js v5.0.9](https://github.com/AlexAltea/capstone.js/releases/tag/v5.0.9)
+| Download | Contents |
+| --- | --- |
+| `comparison-logs` | `functions.tsv.gz` locates each function and its per-block log. The logs list all differing original and rebuilt instruction words by offset, size differences, fixups and compiler diagnostics. The `individual/` folders include complete disassembly diffs and per-profile reports. |
+| `local-html` | The full explorer, including a side-by-side instruction diff, a changed-words filter and individual relocations. Extract the archive, run `python -m http.server 8000` in the directory containing `index.html`, then open `http://localhost:8000`. The decoder and analysis data are bundled. |
 
-To build the site locally after installing the analysis requirements and Zig, run the following from the repository root. The build takes an empty output directory. Serve the result over HTTP to use the explorer.
+The workflow indexes the ExeFS once and assigns address ranges to build jobs. Grouped compilations use AArch64 `-O2`, per-function sections, interposable calls and explicit function boundaries. An individual compiler error is isolated to its function. The standalone reports rerun five optimization profiles for `nnMain` and the six native C fixtures, including the independently linked tree cleanup. The Actions job summary reports counts by module.
+
+Before deployment, the workflow checks the count and checksum of every required group and exercises the public and detailed views in Chromium. The public site omits rebuilt byte streams and full relocation lists. If the compressed public site exceeds 1 GB, it retains the complete function index, graph and rebuild summaries and keeps online source listings for the entry points and comparison fixtures. Every function's assembly and C remain in the detailed HTML download. [GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits) · [Capstone.js](https://github.com/AlexAltea/capstone.js/releases/tag/v5.0.9)
+
+To reproduce the outputs locally, install the analysis requirements and Zig, then use empty output directories.
 
 ```sh
 python tools/eow.py index
-python tools/pages.py build
-python -m http.server --directory build/site
+python tools/pages.py build --out build/local-html
+python tools/pages_report.py build/local-html --out build/site --logs build/comparison-logs
+python -m http.server 8000 --directory build/local-html
 ```
 
 ## Work plan

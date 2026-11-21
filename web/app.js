@@ -14,6 +14,7 @@ import {
 import {
   bindPager,
   functionView,
+  downloadPanel,
   header,
   metrics,
   pager,
@@ -147,7 +148,7 @@ function comparisons(host, m) {
     header(
       "AArch64 verification",
       "Rebuild comparisons",
-      "Every entry has its compiler result and an instruction comparison. Selected functions also have independent optimization sweeps.",
+      "Every entry has a rebuild result. Selected functions also have independent optimization sweeps.",
     ) +
     metrics([
       [number(total), "Successful corpus rebuilds"],
@@ -177,6 +178,8 @@ function comparisons(host, m) {
         .join(""),
     ) +
     '</div><p class="note spaced">Exact requires equal lengths, identical bytes at the original guest address and zero pending fixups. Tail bytes count toward the difference. Individual builds use the pinned compiler and the same scoring as the command-line matcher.</p>';
+  if (["summary", "index"].includes(m.reportMode))
+    host.insertAdjacentHTML("beforeend", downloadPanel());
 }
 async function functions(host, m, module) {
   const specific = m.modules.find((x) => x.name === module);

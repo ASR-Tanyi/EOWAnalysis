@@ -2,13 +2,14 @@
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import json
 import sys
 from threading import Thread
 
 from playwright.sync_api import expect, sync_playwright
 
 
-def check(url):
+def check(url, detailed):
     with sync_playwright() as runner:
         browser = runner.chromium.launch()
         page = browser.new_page(viewport={"width": 1400, "height": 920})
@@ -30,11 +31,19 @@ def check(url):
         expect(page.locator("pre.code")).to_contain_text("struct SetterFields")
         page.get_by_role("link", name="Rebuild", exact=True).click()
         expect(page.get_by_text("Byte-exact", exact=True)).to_be_visible()
-        expect(page.locator("table.diff")).to_contain_text("fcsel")
+        if detailed:
+            expect(page.locator("table.diff")).to_contain_text("fcsel")
+        else:
+            expect(page.get_by_role("link", name="Download local HTML")).to_be_visible()
+            expect(page.get_by_role("link", name="Download comparison logs")).to_be_visible()
+            expect(page.locator("table.diff")).to_have_count(0)
         page.locator("#compare-source").select_option("bulk")
         expect(page.get_by_text("Bytes differ", exact=True)).to_be_visible()
-        page.wait_for_function(r"() => /^[a-f0-9]{8}\s+[a-z]/.test(document.querySelector('table.diff tbody td:nth-child(3)')?.textContent || '')")
-        page.get_by_label("Changed words only").check()
+        if detailed:
+            page.wait_for_function(r"() => /^[a-f0-9]{8}\s+[a-z]/.test(document.querySelector('table.diff tbody td:nth-child(3)')?.textContent || '')")
+            page.get_by_label("Changed words only").check()
+        else:
+            expect(page.get_by_text("Differing bytes", exact=True)).to_be_visible()
         page.goto(url + "#graph")
         page.locator("[data-filter]").select_option("unknown")
         expect(page.locator("[data-edges]")).to_contain_text("call-register")
@@ -59,6 +68,7 @@ if __name__ == "__main__":
     with ThreadingHTTPServer(("127.0.0.1", 0), partial(SimpleHTTPRequestHandler, directory=str(path))) as server:
         Thread(target=server.serve_forever, daemon=True).start()
         try:
-            check(f"http://127.0.0.1:{server.server_port}/")
+            detailed = json.loads((path / "manifest.json").read_text()).get("reportMode") == "detailed"
+            check(f"http://127.0.0.1:{server.server_port}/", detailed)
         finally:
             server.shutdown()

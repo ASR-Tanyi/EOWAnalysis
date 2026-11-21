@@ -102,11 +102,47 @@ jobs:
           pattern: eow-blocks-*
           merge-multiple: true
           path: build/shards
-      - run: python tools/pages.py finish --revision "$GITHUB_SHA"
-      - name: Check navigation, graph and AArch64 comparison in Chromium
+      - name: Assemble detailed local HTML
+        run: python tools/pages.py finish --out build/local-html --revision "$GITHUB_SHA"
+      - name: Generate the compact public site and comparison logs
+        run: |
+          python tools/pages_report.py build/local-html --out build/site --logs build/comparison-logs --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          cat build/comparison-logs/README.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload detailed local HTML
+        id: local-html
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-html
+          path: build/local-html
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload comparison logs
+        id: logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-logs
+          path: build/comparison-logs
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - name: Link this run's artifacts on public function pages
+        env:
+          HTML_URL: ${{ steps.local-html.outputs.artifact-url }}
+          LOG_URL: ${{ steps.logs.outputs.artifact-url }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path("build/site/manifest.json")
+          m = json.loads(p.read_text())
+          m["downloads"] = {"html": os.environ["HTML_URL"], "logs": os.environ["LOG_URL"]}
+          p.write_text(json.dumps(m, separators=(",", ":")) + "\n")
+          PY
+      - name: Check public and detailed local HTML in Chromium
         run: |
           python -m pip install playwright==1.62.0
           python -m playwright install --with-deps chromium
+          python tests/pages_browser.py build/local-html
           python tests/pages_browser.py build/site
       - uses: actions/upload-pages-artifact@v3
         with:
